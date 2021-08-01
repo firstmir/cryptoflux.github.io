@@ -1056,7 +1056,10 @@ Start generating really cryptocurrency income.
  <div id="siteinfoIP">Your IP Address is:   89.136.78.116</div>,
  <div class="banners" id="bannerFive"><a href="http://ezwebvisitors.com/index.php?main_page=redirect&amp;action=banner&amp;goto=16" target="_blank"><img alt="new" height="60" src="images/GreatOffer.jpg" title=" new " width="468"/></a></div>,
  <div class="legalCopyright" id="siteinfoLegal">Copyright © 2021 <a href="http://ezwebvisitors.com/index.php?main_page=index" target="_blank">ezwebvisitors.com</a>. Powered by <a href="http://www.zen-cart.com" target="_blank">Zen Cart</a></div>]
-  
+  [<h3 class="leftBoxHeading" id="categoriesHeading">Categories</h3>,
+ <h3 class="leftBoxHeading" id="whatsnewHeading"><a href="http://ezwebvisitors.com/index.php?main_page=products_new">New Products  [more]</a></h3>,
+ <h3 class="leftBoxHeading" id="featuredHeading"><a href="http://ezwebvisitors.com/index.php?main_page=featured_products">Featured  [more]</a></h3>,
+ <h3 class="leftBoxHeading" id="whosonlineHeading">Who's Online</h3>]
 
 </body>
 </html>

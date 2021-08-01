@@ -1,0 +1,657 @@
+var mining_save_timeout;
+$(function () {
+	$(":not(.main-sidebar--icons-only) .dropdown").on("show.bs.dropdown", function () {
+		$(this).find(".dropdown-menu").first().stop(!0, !0).fadeIn(200)
+	}), $(":not(.main-sidebar--icons-only) .dropdown").on("hide.bs.dropdown", function () {
+		$(this).find(".dropdown-menu").first().stop(!0, !0).fadeOut(200)
+	});
+	$('#loginModal').on('click', '#signUp', function () {
+		$('#container').addClass('right-panel-active');
+	});
+	$('#loginModal').on('click', '#signIn', function () {
+		$('#container').removeClass('right-panel-active');
+	});
+	$('body').on('click', '.btn_login', function () {
+		$('#forgotModal').modal('hide');
+		$('#loginModal').data({
+			'sub': 'login'
+		}).modal('show');
+		return false;
+	});
+	$('body').on('click', '.btn_signup', function () {
+		$('#forgotModal').modal('hide');
+		$('#loginModal').data({
+			'sub': 'signup'
+		}).modal('show');
+		return false;
+	});
+	$('#loginModal').on('shown.bs.modal', function (e) {
+		if ('signup' == $(this).data('sub')) {
+			$('#container').addClass('right-panel-active');
+		} else {
+			$('#container').removeClass('right-panel-active');
+		}
+	});
+	$("a.scrollto").click(function () {
+		elementClick = $(this).attr("href")
+		destination = $(elementClick).offset().top;
+		$("html:not(:animated),body:not(:animated)").animate({
+			scrollTop: destination
+		}, 1100);
+		return false;
+	});
+	$('#loginModal').on('submit', 'form.signup', function () {
+		var f = $(this);
+		var btn = f.find('button[type=submit]');
+		grecaptcha.ready(function () {
+			grecaptcha.execute(grc_public_key, {
+				action: 'signup'
+			}).then(function (token) {
+				$.ajax({
+					url: f.attr('action'),
+					dataType: 'json',
+					type: 'post',
+					data: {
+						'data': f.serialize(),
+						'grc_token': token,
+						'action': 'save'
+					},
+					beforeSend: function (res) {
+						f.find('input').removeClass('is-valid is-invalid').tooltip('dispose');
+						new Noty({
+							type: 'info',
+							text: '<i class="fal fa-spinner-third fa-spin"></i> ' + tl.Registration_in_progress,
+							timeout: 3000,
+							progressBar: true,
+							theme: 'relax',
+							layout: 'bottomRight',
+						}).show();
+						btn.html('<i class="fal fa-spinner-third fa-spin"></i> ' + tl.Please_wait).prop('disabled', true);
+					},
+					success: function (res) {
+						if (res.status == 'success') {
+							window.location.href = res.data;
+						} else {
+							res.text = '<i class="fal fa-do-not-enter"></i> ' + res.text;
+							btn.html(tl.Sign_up).prop('disabled', false);
+							$.each(res.invalid, function (i, v) {
+								f.find('input[name=' + i + ']').addClass('is-invalid').tooltip({
+									html: true,
+									placement: 'right',
+									template: tooltip_template(['text-danger']),
+									title: v
+								}).tooltip('enable');
+							});
+							$.each(res.valid, function (i, v) {
+								f.find('input[name=' + v + ']').addClass('is-valid');
+							});
+						}
+						new Noty({
+							type: res.status,
+							text: res.text,
+							timeout: 3000,
+							progressBar: true,
+							theme: 'relax',
+							layout: 'bottomRight',
+						}).show();
+					},
+				});
+			});
+		});
+		return false;
+	});
+	$('#loginModal').on('submit', 'form.login', function () {
+		var f = $(this);
+		var btn = f.find('button[type=submit]');
+		grecaptcha.ready(function () {
+			grecaptcha.execute(grc_public_key, {
+				action: 'login'
+			}).then(function (token) {
+				$.ajax({
+					url: f.attr('action'),
+					dataType: 'json',
+					type: 'post',
+					data: {
+						'data': f.serialize(),
+						'grc_token': token,
+						'action': 'save'
+					},
+					beforeSend: function (res) {
+						f.find('input').removeClass('is-valid is-invalid');
+						new Noty({
+							type: 'info',
+							text: '<i class="fal fa-spinner-third fa-spin"></i> ' + tl.Authorization_in_progress,
+							timeout: 3000,
+							progressBar: true,
+							theme: 'relax',
+							layout: 'bottomRight',
+						}).show();
+						btn.html('<i class="fal fa-spinner-third fa-spin"></i> ' + tl.Please_wait).prop('disabled', true);
+					},
+					success: function (res) {
+						if (res.status == 'success') {
+							f.find('input').addClass('is-valid');
+							window.location.href = res.data;
+						} else {
+							f.find('input').addClass('is-invalid');
+							btn.html(tl.Log_in).prop('disabled', false);
+							res.text = '<i class="fal fa-do-not-enter"></i> ' + res.text;
+						}
+						new Noty({
+							type: res.status,
+							text: res.text,
+							timeout: 3000,
+							progressBar: true,
+							theme: 'relax',
+							layout: 'bottomRight',
+						}).show();
+					},
+				});
+			});
+		});
+		return false;
+	});
+	$('#forgotModal').on('submit', 'form', function () {
+		var f = $(this);
+		var btn = f.find('button[type=submit]');
+		grecaptcha.ready(function () {
+			grecaptcha.execute(grc_public_key, {
+				action: 'forgot'
+			}).then(function (token) {
+				$.ajax({
+					url: f.attr('action'),
+					dataType: 'json',
+					type: 'post',
+					data: {
+						'data': f.serialize(),
+						'grc_token': token,
+						'action': 'go_to_recovery'
+					},
+					beforeSend: function (res) {
+						new Noty({
+							type: 'info',
+							text: get_noty_icon(res.status) + tl.Please_wait,
+							timeout: 3000,
+							progressBar: true,
+							theme: 'relax',
+							layout: 'bottomRight',
+						}).show();
+						btn.html(get_noty_icon(res.status) + tl.Please_wait).prop('disabled', true);
+					},
+					success: function (res) {
+						new Noty({
+							type: res.status,
+							text: res.text,
+							timeout: 3000,
+							progressBar: true,
+							theme: 'relax',
+							layout: 'bottomRight',
+						}).show();
+						btn.html(tl.Restore_password).prop('disabled', false);
+						$('#restore_email').val('');
+					},
+				});
+			});
+		});
+		return false;
+	});
+	$('body').on('click', '.forgot', function () {
+		$('#loginModal').modal('hide');
+	});
+	$(window).resize(function () {});
+	$('body').on('submit', 'form.promoform', function () {
+		var f = $(this);
+		var btn = f.find('button[type=submit]');
+		var data = {
+			'promo_code': f.find('input[name=promo_code]').val(),
+		}
+		$.ajax({
+			url: '/promo/',
+			dataType: 'json',
+			type: 'post',
+			data: {
+				'data': data,
+				'action': 'promo_code_activate'
+			},
+			beforeSend: function (res) {
+				new Noty({
+					type: 'info',
+					text: '<i class="now-ui-icons loader_gear spin"></i> ' + tl.Please_wait,
+					timeout: 3000,
+					progressBar: true,
+					theme: 'relax',
+					layout: 'bottomRight',
+				}).show();
+				btn.html('<i class="now-ui-icons loader_gear spin"></i> ' + tl.Please_wait).prop('disabled', true);
+			},
+			success: function (res) {
+				new Noty({
+					type: res.status,
+					text: res.text,
+					timeout: 3000,
+					progressBar: true,
+					theme: 'relax',
+					layout: 'bottomRight',
+				}).show();
+				btn.html(tl.Activate).prop('disabled', false);
+			},
+		});
+		return false;
+	});
+	$('#calculation').on('keyup', 'input.amount', function () {
+	    
+		buy_power_calc($(this));
+		lvl_calc($(this));
+		
+	});
+	$('#calculation').on('click', 'a.nav-link', function () {
+		
+		
+		var curr = $(this).attr('data-curency');
+        
+		$('.calc__currencies a').removeClass('active');
+		$(this).addClass('active');
+		$(".calc_curr").html(curr.toUpperCase());
+	    $("input#form_curr").val(curr); 
+	
+		$(".calc_curs").html(cur[curr]);
+		$(".img_ps").attr('src', '/assets/img/currencies/'+curr+'.png');
+     
+		
+		buy_power_calc($('input#amount_usd'));
+		lvl_calc($('input#amount_usd'));
+	});
+	$('#support').on('submit', 'form', function () {
+		var f = $(this);
+		var btn = f.find('button[type=submit]');
+		grecaptcha.ready(function () {
+			grecaptcha.execute(grc_public_key, {
+				action: '/modules/support/'
+			}).then(function (token) {
+				$.ajax({
+					url: '/modules/support/',
+					dataType: 'json',
+					type: 'post',
+					data: {
+						'data': decodeURI(f.serialize()),
+						'grc_token': token,
+						'action': 'create_ticket'
+					},
+					beforeSend: function (res) {
+						f.find('input, textarea').removeClass('is-valid is-invalid').tooltip('dispose');
+						new Noty({
+							type: 'info',
+							text: get_noty_icon(res.status) + tl.Sending,
+							timeout: 3000,
+							progressBar: true,
+							theme: 'relax',
+							layout: 'bottomRight',
+						}).show();
+						btn.html(get_noty_icon(res.status) + tl.Please_wait).prop('disabled', true);
+					},
+					success: function (res) {
+						btn.html(tl.Send_Message).prop('disabled', false);
+						new Noty({
+							type: res.status,
+							text: get_noty_icon(res.status) + res.text,
+							timeout: 3000,
+							progressBar: true,
+							theme: 'relax',
+							layout: 'bottomRight',
+						}).show();
+						
+						if (res.status == 'success') {
+							$('#subject, #message, #email').val('');
+						}
+					},
+				});
+			});
+		});
+		return false;
+	});
+
+	$('#dialog').on('submit', 'form', function () {
+		var f = $(this);
+		var btn = f.find('button[type=submit]');
+		grecaptcha.ready(function () {
+			grecaptcha.execute(grc_public_key, {
+				action: '/modules/support/'
+			}).then(function (token) {
+				$.ajax({
+					url: '/modules/support/',
+					dataType: 'json',
+					type: 'post',
+					data: {
+						'data': decodeURI(f.serialize()),
+						'grc_token': token,
+						'action': 'create_dialog'
+					},
+					beforeSend: function (res) {
+						f.find('input, textarea').removeClass('is-valid is-invalid').tooltip('dispose');
+						new Noty({
+							type: 'info',
+							text: get_noty_icon(res.status) + tl.Sending,
+							timeout: 3000,
+							progressBar: true,
+							theme: 'relax',
+							layout: 'bottomRight',
+						}).show();
+						btn.html(get_noty_icon(res.status) + tl.Please_wait).prop('disabled', true);
+					},
+					success: function (res) {
+						btn.html(tl.Send_Message).prop('disabled', false);
+						new Noty({
+							type: res.status,
+							text: get_noty_icon(res.status) + res.text,
+							timeout: 3000,
+							progressBar: true,
+							theme: 'relax',
+							layout: 'bottomRight',
+						}).show();
+						
+						if (res.status == 'success') {
+							$('#message').val('');
+                          
+                         $(".chat__reply").after(res.add);
+						}
+					},
+				});
+			});
+		});
+		return false;
+	});
+
+
+	$('#admin-support').on('submit', 'form', function () {
+		var f = $(this);
+		var btn = f.find('button[type=submit]');
+		grecaptcha.ready(function () {
+			grecaptcha.execute(grc_public_key, {
+				action: '/modules/support/'
+			}).then(function (token) {
+				$.ajax({
+					url: '/modules/support/',
+					dataType: 'json',
+					type: 'post',
+					data: {
+						'data': decodeURI(f.serialize()),
+						'grc_token': token,
+						'action': 'admin_support'
+					},
+					beforeSend: function (res) {
+						f.find('input, textarea').removeClass('is-valid is-invalid').tooltip('dispose');
+						new Noty({
+							type: 'info',
+							text: get_noty_icon(res.status) + tl.Sending,
+							timeout: 3000,
+							progressBar: true,
+							theme: 'relax',
+							layout: 'bottomRight',
+						}).show();
+						btn.html(get_noty_icon(res.status) + tl.Please_wait).prop('disabled', true);
+					},
+					success: function (res) {
+						btn.html(tl.Send_Message).prop('disabled', false);
+						new Noty({
+							type: res.status,
+							text: get_noty_icon(res.status) + res.text,
+							timeout: 3000,
+							progressBar: true,
+							theme: 'relax',
+							layout: 'bottomRight',
+						}).show();
+						
+						if (res.status == 'success') {
+							$('#message_div').html('');
+							$('#message').val('');
+                          
+                         $(".tickets__messages").prepend(res.add);
+						 $("#tiket_"+res.id).remove();
+						}
+					},
+				});
+			});
+		});
+		return false;
+	});
+
+
+	$('#admin-support2').on('keyup', '.tickets__form_field', function () {
+	$("#message").val($(this).html());
+	});
+
+
+	$('.faq').on('click', '.faq_descr', function () {
+		$('.faq_descr').removeClass('card-raised bg-rose');
+		$('.answer').slideUp(200);
+		var p = $(this).find('.answer');
+		if (p.is(':visible')) {
+			p.slideUp(200);
+		} else {
+			$(this).addClass('card-raised bg-rose');
+			p.stop(true, true).slideUp(1).slideDown(200);
+		}
+		return false;
+	});
+	$('.gifts').on('click', '.get_gift', function () {
+		$('.get_gift').html('<i class="now-ui-icons loader_gear spin"></i> ' + tl.Please_wait).prop('disabled', true);
+		var lvl = $(this).attr('data-lvl');
+		var data = {
+			'lvl': lvl,
+		}
+		var n;
+		gifts_animate_clear(lvl);
+		$.ajax({
+			url: '',
+			dataType: 'json',
+			type: 'post',
+			data: {
+				'data': data,
+				'action': 'go_random'
+			},
+			beforeSend: function (res) {
+				n = new Noty({
+					type: 'info',
+					text: tl.Please_wait,
+					timeout: 3000,
+					progressBar: true,
+					theme: 'relax',
+					layout: 'bottomRight',
+				}).show();
+			},
+			success: function (res) {
+				n.close();
+				if (res.status == 'success') {
+					gifts_animate(lvl, res.data);
+					return false;
+				} else {
+					new Noty({
+						type: 'error',
+						text: res.text,
+						timeout: 3000,
+						progressBar: true,
+						theme: 'relax',
+						layout: 'bottomRight',
+					}).show();
+					$('.get_gift').html(tl.Get_a_gift).prop('disabled', false);
+				}
+			},
+		});
+		return false;
+	});
+});
+
+function tooltip_template(classes = '') {
+	if (classes.length > 0) {
+		classes = ' ' + classes.join(' ');
+	}
+	return '<div class="tooltip" role="tooltip"><div class="arrow"></div><div class="tooltip-inner' + classes + '"></div></div>';
+}
+
+function lvl_calc(input) {
+	var calc = $('#calculation');
+	var f = input.parents('form');
+	var curency = $("input#form_curr").val();
+	var val = input.val();
+	var ghs = Math.floor(cur[curency] * val * 100);
+	var lvl = get_lvl(ghs);
+	var tbl = calc.find('.table-lvl');
+	var progress = calc.find('.progress-bar');
+	var pw = lvl.level * 10;
+	if (5 != lvl.level && 10 != lvl.level) {
+		pw = pw + (5 - lvl.level);
+	}
+	progress.css('width', (pw-2) + '%').attr('aria-valuenow', lvl.level);
+
+}
+
+function calculation() {
+	var calc = $('#calculation');
+	var e = calc.find('input[name=amount]');
+	e.val(e.val().replace(",", "."));
+	e.val(e.val().replace(/[^\d.]/g, ''));
+	calc.find('input[name=amount]').val(e.val());
+	var amount = e.val();
+	var curency = $("input#form_curr").val();
+	
+	var usd = amount * cur[curency];
+	var ghs = usd * 100;
+	var lvl = get_lvl(ghs);
+	var interval = calc.find('select[name=interval]').val();
+	var profit = 0;
+	for (var i = 0; i < interval; i++) {
+		profit += amount / 100 * (lvl.percent + i * bonus_daily_percent);
+	}
+	if (profit > 9999999) {
+		profit = 9999999;
+	} else if (isNaN(profit)) {
+		profit = 0
+	}
+	var res = $('.calc-result');
+	var percent = lvl.percent + i * bonus_daily_percent;
+	res.find('.ghs').text(ghs.toFixed(2));
+	res.find('.price').text(usd.toFixed(2));
+	res.find('.calc-level').text(lvl.level);
+	res.find('.percent').text(percent.toFixed(2) + '%');
+	res.find('.profit-usd').text((profit * cur[curency]).toFixed(2));
+	res.find('.interval').text(calc.find('select[name=interval] option:selected').text());
+	if ('usd' == curency) {
+		res.find('.profit').html('<small>$</small> ' + profit.toFixed(2));
+	} else {
+		res.find('.profit').html(profit.toFixed(8) + ' <small>' + curency + '</small>');
+	}
+	var tbl = calc.find('.table-lvl');
+	var progress = calc.find('.progress-bar');
+	var pw = lvl.level * 10;
+	if (5 != lvl.level && 10 != lvl.level) {
+		pw = pw + (5 - lvl.level);
+	}
+	progress.css('width', pw + '%').attr('aria-valuenow', lvl.level);
+	tbl.find('.lvl').each(function (index, element) {
+		var l = $(this).attr('data-lvl');
+		if (l < lvl.level) {
+			$(this).find('.badge').addClass('badge-info').removeClass('badge-default badge-primary');
+		} else if (l == lvl.level) {
+			$(this).find('.badge').addClass('badge-primary').removeClass('badge-default badge-info');
+		} else {
+			$(this).find('.badge').addClass('badge-default').removeClass('badge-info badge-primary');
+		}
+	});
+}
+
+function buy_power_calc(input) {
+	
+	input.val(input.val().replace(",", "."));
+	input.val(input.val().replace(/[^\d.]/g, ''));
+	var f = input.parents('form');
+	var curency = $("input#form_curr").val();
+ 
+	var val = input.val();
+	if (isNaN(val) || val == 0) val = 0;
+	var val_format = ('usd' == curency) ? '$' + val : val + ' <small>' + curency + '</small>';
+	var res = Math.floor(cur[curency] * val / 0.01 * 100) / 100;
+	if (isNaN(res) || res == 0) res = '';
+	if ($('b').is('.refback')) {
+		var bonus = res * $('b.refback').text() / 100;
+		f.find('.bonus').remove();
+	}
+	$.each(contracts, function (i, v) {
+		var contract = $('.contract_' + i);
+		var ghs = Math.floor(cur[curency] * val / v * 100) / 100
+		var lvl = get_lvl(ghs);
+		var percent = lvl.percent;
+		contract.find('input[name=amount]').val(val);
+		contract.find('input[name=ghs]').val(ghs);
+		contract.find('input[name=currency]').val(curency);
+		contract.find('.contract_amount').html(val_format);
+		contract.find('.contract_ghs').html(ghs);
+		contract.find('.contract_level').html(lvl.level);
+		contract.find('.contract_percent').html(percent);
+		contract.find('.contract_ppd').html('$' + Math.floor(course[curency] * val / v * percent / 100) / 100);
+		contract.find('.contract_profit').html('$' + Math.floor(course[curency] * val / v * percent * i / 100) / 100);
+	});
+}
+
+
+function buy_power_calc_acc(input) {
+	
+    input.val(input.val().replace(",", "."));
+    input.val(input.val().replace(/[^\d.]/g, ''));
+    var f = input.parents('form');
+    var curency = f.attr('data-curency');
+    var val = input.val();
+    if (isNaN(val) || val == 0) val = 0;
+    var val_format = ('usd' == curency) ? '$' + val : val + ' <small>' + curency + '</small>';
+    var res = Math.floor(course[curency] * val / 0.01 * 100) / 100;
+    if (isNaN(res) || res == 0) res = '';
+    if ($('b').is('.refback')) {
+        var bonus = res * $('b.refback').text() / 100;
+        f.find('.bonus').remove();
+    }
+    $.each(contracts, function(i, v) {
+        var contract = $('.contract_' + i);
+        var ghs = Math.floor(course[curency] * val / v * 100) / 100
+        var lvl = get_lvl(ghs);
+        var percent = lvl.percent;
+        contract.find('input[name=amount]').val(val);
+        contract.find('input[name=ghs]').val(ghs);
+        contract.find('input[name=currency]').val(curency);
+        contract.find('.contract_amount').html(val_format);
+        contract.find('.contract_ghs').html(ghs);
+        contract.find('.contract_level').html(lvl.level);
+        contract.find('.contract_percent').html('% '+percent);
+        contract.find('.contract_ppd').html(((Math.floor(course[curency] * val / v * percent / 100) / 100)/course[curency]).toFixed(8) +' '+curency);
+        contract.find('.contract_profit').html(((Math.floor(course[curency] * val / v * percent * i / 100) / 100)/course[curency]).toFixed(8) +' '+curency);
+    });
+}
+
+function get_noty_icon(status) {
+	var res = '<i class="fal fa-spinner-third fa-spin"></i> ';
+	switch (status) {
+		case 'success':
+			res = '<i class="fal fa-check"></i> ';
+			break;
+		case 'error':
+			res = '<i class="fal fa-do-not-enter"></i> ';
+			break;
+	}
+	return res;
+}
+
+function print_r(arr, level) {
+	var print_red_text = "";
+	if (!level) level = 0;
+	var level_padding = "";
+	for (var j = 0; j < level + 1; j++) level_padding += "    ";
+	if (typeof (arr) == 'object') {
+		for (var item in arr) {
+			var value = arr[item];
+			if (typeof (value) == 'object') {
+				print_red_text += level_padding + "'" + item + "' :\n";
+				print_red_text += print_r(value, level + 1);
+			} else
+				print_red_text += level_padding + "'" + item + "' => \"" + value + "\"\n";
+		}
+	} else print_red_text = "===>" + arr + "<===(" + typeof (arr) + ")";
+	return print_red_text;
+}
